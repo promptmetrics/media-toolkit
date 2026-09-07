@@ -9,8 +9,9 @@ the agent can change from inside a session. Relay bootstrap's message
 verbatim — it contains the admin steps. The key facts:
 
 - Setting location: claude.ai console -> Organization settings -> Capabilities ->
-  Code execution -> Allow network egress.
-- Domains needed: `youtube.com`, `www.youtube.com`, `*.googlevideo.com`, `i.ytimg.com`.
+  Code execution section -> "Domain allowlist" / "Additional allowed domains".
+- Keep the dropdown on "Package managers only"; add under Additional allowed
+  domains: `youtube.com`, `*.youtube.com`, `*.googlevideo.com`, `*.ytimg.com`.
 - Known issue: the specific-domains allowlist is not reliably enforced
   (anthropics/claude-code issues #51400, #30112, #38984); "All domains" is the
   working fallback until fixed.

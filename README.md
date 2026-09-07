@@ -26,13 +26,13 @@ Two settings, both in the [claude.ai console](https://claude.ai):
 
 **1. Distribute the plugin.** Organization settings → Plugins → add marketplace `promptmetrics/media-toolkit` → set **media-toolkit** to *Installed by default* (or *Required*).
 
-**2. Open network egress for video sites — the plugin is dead on arrival without this.** Organization settings → Capabilities → Code execution → Allow network egress. The default *Package managers only* setting lets the plugin install its engine but blocks the actual video sites. Domains needed:
+**2. Open network egress for video sites — the plugin is dead on arrival without this.** Organization settings → Capabilities → **Code execution** section. Keep the *Domain allowlist* dropdown on *Package managers only* (that lets the plugin install its engine) and add these under **Additional allowed domains**:
 
 ```
 youtube.com
-www.youtube.com
+*.youtube.com
 *.googlevideo.com
-i.ytimg.com
+*.ytimg.com
 ```
 
 Known issue: the specific-domains allowlist is currently not reliably enforced ([#51400](https://github.com/anthropics/claude-code/issues/51400), [#30112](https://github.com/anthropics/claude-code/issues/30112), [#38984](https://github.com/anthropics/claude-code/issues/38984)) — if adding domains doesn't take effect, use *All domains* until those are fixed. Egress is read at session creation, so users must start a new session after the change.
