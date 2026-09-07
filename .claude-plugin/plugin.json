@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "promptmetrics-media-toolkit",
+  "version": "0.1.0",
+  "description": "YouTube and media operations for operators inside Claude Cowork — clean transcripts, video and audio downloads, clip extraction, and playlist batch transcripts, powered by yt-dlp with runtime self-update. No terminal required.",
+  "homepage": "https://github.com/promptmetrics/media-toolkit",
+  "repository": "https://github.com/promptmetrics/media-toolkit",
+  "author": { "name": "PromptMetrics", "url": "https://github.com/promptmetrics" },
+  "license": "MIT"
+}

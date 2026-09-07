@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# yt-transcript — plain-text transcript from a YouTube (or any yt-dlp-supported) URL.
+# Usage: yt-transcript [-l LANG] [-t] [-o FILE] URL   (flags before URL; quote the URL)
+#   -l LANG  subtitle language (default: en)
+#   -t  keep timestamps, one "[mm:ss] text" line per cue
+#   -o FILE  write to FILE instead of stdout
+set -euo pipefail
+
+lang=en; stamps=0; out=""
+while getopts "l:to:h" opt; do
+  case $opt in
+    l) lang=$OPTARG ;;
+    t) stamps=1 ;;
+    o) out=$OPTARG ;;
+    h) sed -n '2,7p' "$0"; exit 0 ;;
+    *) exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
+[ $# -eq 1 ] || { echo "usage: yt-transcript [-l LANG] [-t] [-o FILE] URL" >&2; exit 2; }
+url=$1
+
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+
+# Prefer human-written subs, fall back to auto-generated.
+"${YTDLP_BIN:-yt-dlp}" --write-subs --write-auto-subs --sub-langs "$lang" --sub-format vtt \
+       --skip-download --no-warnings -q -o "$tmp/s.%(ext)s" "$url"
+
+vtt=$(find "$tmp" -name '*.vtt' | head -1)
+[ -n "$vtt" ] || { echo "yt-transcript: no '$lang' subtitles found for this video" >&2; exit 1; }
+
+# Decode HTML entities YouTube leaves in caption text (&amp; last, to avoid double-decoding).
+unescape() {
+  sed -e 's/&lt;/</g' -e 's/&gt;/>/g' -e 's/&quot;/"/g' -e "s/&#39;/'/g" \
+      -e 's/&nbsp;/ /g' -e 's/&amp;/\&/g'
+}
+
+render() {
+  if [ "$stamps" -eq 1 ]; then
+    awk '
+      /-->/ { split($1, a, "."); ts = substr(a[1], 1, 8); next }
+      /^(WEBVTT|Kind:|Language:)/ { next }
+      { gsub(/<[^>]*>/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
+      NF && !seen[$0]++ { printf "[%s] %s\n", ts, $0 }
+    ' "$vtt" | unescape
+  else
+    sed -e 's/<[^>]*>//g' -e '/-->/d' -e '/^WEBVTT/d' -e '/^Kind:/d' -e '/^Language:/d' "$vtt" \
+      | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+      | awk 'NF && !seen[$0]++' | unescape
+  fi
+}
+
+if [ -n "$out" ]; then render > "$out"; echo "wrote $out ($(wc -w < "$out" | tr -d ' ') words)" >&2
+else render; fi

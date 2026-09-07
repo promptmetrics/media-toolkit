@@ -1,0 +1,27 @@
+{
+  "name": "media-toolkit",
+  "owner": { "name": "PromptMetrics" },
+  "description": "Marketplace for the PromptMetrics media-toolkit plugin — transcripts, downloads, clips, and batch media operations for Claude Cowork and Claude Code.",
+  "plugins": [
+    {
+      "name": "promptmetrics-media-toolkit",
+      "source": "./",
+      "description": "YouTube and media operations for operators — clean transcripts, video and audio downloads, clip extraction, and playlist batch transcripts, powered by yt-dlp with runtime self-update. No terminal required.",
+      "version": "0.1.0",
+      "author": { "name": "PromptMetrics" },
+      "homepage": "https://github.com/promptmetrics/media-toolkit",
+      "repository": "https://github.com/promptmetrics/media-toolkit",
+      "license": "MIT",
+      "keywords": [
+        "youtube",
+        "transcript",
+        "yt-dlp",
+        "media",
+        "download",
+        "cowork",
+        "operators"
+      ],
+      "skills": ["./skills/media-toolkit"]
+    }
+  ]
+}

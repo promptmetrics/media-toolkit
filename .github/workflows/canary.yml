@@ -1,0 +1,57 @@
+# Weekly canary: does the toolkit still work against real YouTube?
+# yt-dlp updates at RUNTIME in every user session (bootstrap.sh installs the
+# nightly channel), so this workflow never releases anything — it only detects
+# breakage early and opens an issue.
+name: canary
+on:
+  schedule:
+    - cron: "23 7 * * 1" # Mondays 07:23 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: write
+  issues: write
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    env:
+      # Fixtures verified 2026-09-07. Transcript: NASA (US-government work,
+      # human captions). Download: Big Buck Bunny (CC-BY, Blender Foundation).
+      FIXTURE_TRANSCRIPT_URL: "https://www.youtube.com/watch?v=_T8cn2J13-4"
+      FIXTURE_DOWNLOAD_URL: "https://www.youtube.com/watch?v=aqz-KE-bpKQ"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install yt-dlp (nightly channel — same as the skill's bootstrap)
+        run: python3 -m pip install -U --pre "yt-dlp[default]"
+      - name: Transcript smoke test
+        run: |
+          out="$(skills/media-toolkit/scripts/yt-transcript -l en "$FIXTURE_TRANSCRIPT_URL" | head -5)"
+          printf '%s\n' "$out"
+          test -n "$out"
+      - name: Download smoke test (small file)
+        run: |
+          yt-dlp -f "worst[ext=mp4]/worst" --max-filesize 30M --no-warnings \
+            -o /tmp/canary.mp4 "$FIXTURE_DOWNLOAD_URL"
+          test -s /tmp/canary.mp4
+      - name: Log latest upstream release (informational)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/yt-dlp/yt-dlp/releases/latest --jq .tag_name
+      - name: Open issue on failure (deduped)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create canary-failure --color D93F0B \
+            --description "Weekly yt-dlp smoke test failed" --force || true
+          open=$(gh issue list --label canary-failure --state open --json number --jq length)
+          if [ "$open" -eq 0 ]; then
+            gh issue create --title "Canary failure: yt-dlp smoke test failed $(date -u +%F)" \
+              --label canary-failure \
+              --body "The weekly canary failed. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Likely a YouTube extractor change — check https://github.com/yt-dlp/yt-dlp/issues and whether the nightly channel already has a fix. Users are unaffected once upstream fixes land (bootstrap reinstalls nightly per session)."
+          fi
+      - name: Keepalive (prevent 60-day scheduled-workflow auto-disable)
+        if: success()
+        uses: gautamkrishnar/keepalive-workflow@v2

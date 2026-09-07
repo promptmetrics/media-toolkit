@@ -1,0 +1,43 @@
+# PR gate: manifests stay in lockstep, scripts stay valid, and any change to
+# the skill or manifests carries a version bump (the bump is what makes
+# Cowork's org GitHub sync and the marketplace Update button pick it up).
+name: validate
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Manifest versions in lockstep
+        run: |
+          pv=$(jq -r .version .claude-plugin/plugin.json)
+          mv=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+          echo "plugin.json=$pv marketplace.json=$mv"
+          test "$pv" = "$mv"
+      - name: Shell syntax
+        run: |
+          for f in skills/media-toolkit/scripts/* scripts/build-zip.sh; do
+            bash -n "$f" && echo "ok: $f"
+          done
+      - name: Skill checks + zip build
+        run: bash scripts/build-zip.sh
+      - name: Version bumped when skill or manifests changed (PRs only)
+        if: github.event_name == 'pull_request'
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          if git diff --name-only "$base"...HEAD | grep -qE '^(skills/|\.claude-plugin/)'; then
+            old=$(git show "$base":.claude-plugin/plugin.json | jq -r .version)
+            new=$(jq -r .version .claude-plugin/plugin.json)
+            echo "base=$old head=$new"
+            if [ "$old" = "$new" ]; then
+              echo "ERROR: skills/ or .claude-plugin/ changed but the version was not bumped in both manifests" >&2
+              exit 1
+            fi
+          else
+            echo "no skill/manifest changes — bump not required"
+          fi
