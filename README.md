@@ -26,7 +26,7 @@ Two settings, both in the [claude.ai console](https://claude.ai):
 
 **1. Distribute the plugin.** Organization settings → Plugins → add marketplace `promptmetrics/media-toolkit` → set **media-toolkit** to *Installed by default* (or *Required*).
 
-**2. Open network egress for video sites — the plugin is dead on arrival without this.** Organization settings → Cowork → Code execution → Allow network egress. The default *Package managers only* setting lets the plugin install its engine but blocks the actual video sites. Domains needed:
+**2. Open network egress for video sites — the plugin is dead on arrival without this.** Organization settings → Capabilities → Code execution → Allow network egress. The default *Package managers only* setting lets the plugin install its engine but blocks the actual video sites. Domains needed:
 
 ```
 youtube.com

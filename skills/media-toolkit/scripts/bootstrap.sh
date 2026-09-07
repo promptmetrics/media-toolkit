@@ -19,7 +19,7 @@ if ! python3 -m pip install --quiet --upgrade --pre "yt-dlp[default]" 2>/dev/nul
   if ! python3 -m pip install --quiet --upgrade --pre --user "yt-dlp[default]" 2>/dev/null; then
     say "Couldn't install yt-dlp from PyPI."
     say "Your Claude admin needs to allow package-manager network access:"
-    say "claude.ai console -> Organization settings -> Cowork -> Code execution -> Allow network egress -> at least 'Package managers only'."
+    say "claude.ai console -> Organization settings -> Capabilities -> Code execution -> Allow network egress -> at least 'Package managers only'."
     say "Egress applies to sessions created after the change, so start a new session afterwards."
     exit 20
   fi
@@ -49,7 +49,7 @@ case "$code" in
     say "This workspace can't reach video sites yet. Copy this to your Claude admin:"
     say ""
     say "  Please allow media downloads for our Cowork workspace."
-    say "  Where: claude.ai console -> Organization settings -> Cowork -> Code execution -> Allow network egress."
+    say "  Where: claude.ai console -> Organization settings -> Capabilities -> Code execution -> Allow network egress."
     say "  The default 'Package managers only' setting blocks video sites."
     say "  Domains needed: youtube.com, www.youtube.com, *.googlevideo.com, i.ytimg.com"
     say "  Known issue: the specific-domains allowlist is not reliably enforced right now"

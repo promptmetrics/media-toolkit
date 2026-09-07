@@ -8,7 +8,7 @@ blocks video sites. This is an org-admin setting, not something the user or
 the agent can change from inside a session. Relay bootstrap's message
 verbatim — it contains the admin steps. The key facts:
 
-- Setting location: claude.ai console -> Organization settings -> Cowork ->
+- Setting location: claude.ai console -> Organization settings -> Capabilities ->
   Code execution -> Allow network egress.
 - Domains needed: `youtube.com`, `www.youtube.com`, `*.googlevideo.com`, `i.ytimg.com`.
 - Known issue: the specific-domains allowlist is not reliably enforced
