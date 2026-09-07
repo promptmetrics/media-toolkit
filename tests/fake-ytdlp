@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Test stub for yt-dlp: instead of fetching subtitles, drop the committed
+# fixture VTT where yt-transcript expects the download to land. Lets CI run
+# the real cleaning pipeline deterministically, with no network.
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+dest=""
+prev=""
+for a in "$@"; do
+  [ "$prev" = "-o" ] && dest="$a"
+  prev="$a"
+done
+[ -n "$dest" ] || { echo "fake-ytdlp: no -o argument" >&2; exit 1; }
+cp "$here/fixture.vtt" "${dest//%(ext)s/en.vtt}"

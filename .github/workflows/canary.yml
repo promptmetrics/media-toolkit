@@ -1,7 +1,17 @@
-# Weekly canary: does the toolkit still work against real YouTube?
-# yt-dlp updates at RUNTIME in every user session (bootstrap.sh installs the
-# nightly channel), so this workflow never releases anything — it only detects
-# breakage early and opens an issue.
+# Weekly canary. yt-dlp updates at RUNTIME in every user session
+# (bootstrap.sh installs the nightly channel), so this workflow never releases
+# anything — it detects breakage early and opens an issue.
+#
+# Two tiers:
+#   1. Deterministic (always enforced): nightly pip install works, scripts are
+#      syntactically valid, and the transcript cleaning pipeline produces the
+#      committed expected output from a fixture VTT (tests/fake-ytdlp stubs the
+#      download via the $YTDLP_BIN hook — the real script logic runs).
+#   2. Network (best effort): a real YouTube transcript + download. YouTube
+#      bot-checks GitHub's datacenter IPs ("Sign in to confirm you're not a
+#      bot"), which says nothing about user sessions on other egress — that
+#      exact signature is reported as inconclusive; any OTHER failure fails
+#      the run and opens an issue.
 name: canary
 on:
   schedule:
@@ -25,16 +35,38 @@ jobs:
           python-version: "3.12"
       - name: Install yt-dlp (nightly channel — same as the skill's bootstrap)
         run: python3 -m pip install -U --pre "yt-dlp[default]"
-      - name: Transcript smoke test
+      - name: Shell syntax
         run: |
-          out="$(skills/media-toolkit/scripts/yt-transcript -l en "$FIXTURE_TRANSCRIPT_URL" | head -5)"
-          printf '%s\n' "$out"
-          test -n "$out"
-      - name: Download smoke test (small file)
+          for f in skills/media-toolkit/scripts/* scripts/build-zip.sh tests/fake-ytdlp; do
+            bash -n "$f" && echo "ok: $f"
+          done
+      - name: Unit test — transcript cleaning pipeline (no network)
         run: |
+          YTDLP_BIN="$PWD/tests/fake-ytdlp" skills/media-toolkit/scripts/yt-transcript \
+            "https://example.invalid/x" | diff - tests/expected.txt
+          YTDLP_BIN="$PWD/tests/fake-ytdlp" skills/media-toolkit/scripts/yt-transcript \
+            -t "https://example.invalid/x" | diff - tests/expected-timestamps.txt
+          echo "cleaning pipeline OK (plain + timestamps)"
+      - name: Network test — real YouTube (datacenter IPs may be bot-checked)
+        run: |
+          set +e
+          log=$(mktemp)
+          skills/media-toolkit/scripts/yt-transcript -l en "$FIXTURE_TRANSCRIPT_URL" > /tmp/t.txt 2>"$log"
+          t_rc=$?
           yt-dlp -f "worst[ext=mp4]/worst" --max-filesize 30M --no-warnings \
-            -o /tmp/canary.mp4 "$FIXTURE_DOWNLOAD_URL"
-          test -s /tmp/canary.mp4
+            -o /tmp/canary.mp4 "$FIXTURE_DOWNLOAD_URL" 2>>"$log"
+          d_rc=$?
+          set -e
+          if [ "$t_rc" -eq 0 ] && [ -s /tmp/t.txt ] && [ "$d_rc" -eq 0 ] && [ -s /tmp/canary.mp4 ]; then
+            echo "network tests passed"
+            head -3 /tmp/t.txt
+          elif grep -q "Sign in to confirm" "$log"; then
+            echo "::warning::YouTube bot-checked the runner IP — network test inconclusive (not a toolkit failure; user sessions use different egress)"
+          else
+            echo "network test failed for a reason other than the datacenter bot-check:" >&2
+            cat "$log" >&2
+            exit 1
+          fi
       - name: Log latest upstream release (informational)
         env:
           GH_TOKEN: ${{ github.token }}
